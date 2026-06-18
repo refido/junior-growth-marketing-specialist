@@ -17,6 +17,8 @@ from youtube_transcript_api import (
     YouTubeTranscriptApi,
 )
 
+from source_utils import default_sources_file, load_research_sources, select_source_urls
+
 LOGGER = logging.getLogger(__name__)
 DEFAULT_LIMIT = 5
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -46,8 +48,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "channel_urls",
-        nargs="+",
-        help="One or more YouTube channel URLs.",
+        nargs="*",
+        help="Optional YouTube channel URLs. If omitted, URLs are read from research/sources.yaml.",
+    )
+    parser.add_argument(
+        "--source-file",
+        type=Path,
+        default=default_sources_file(PROJECT_ROOT),
+        help="YAML file containing youtube and linkedin research sources.",
     )
     parser.add_argument(
         "--output-dir",
@@ -68,6 +76,20 @@ def build_parser() -> argparse.ArgumentParser:
         help="Logging level. Default: INFO",
     )
     return parser
+
+
+def resolve_channel_urls(manual_urls: Sequence[str], source_file: Path) -> list[str]:
+    if manual_urls:
+        return list(manual_urls)
+
+    sources = load_research_sources(source_file)
+    channel_urls = select_source_urls(sources.youtube)
+    if not channel_urls:
+        raise ValueError(
+            f"No YouTube channel URLs were provided and no youtube entries were found in {source_file}"
+        )
+    LOGGER.info("Using %d YouTube channel URLs from %s", len(channel_urls), source_file)
+    return channel_urls
 
 
 def sanitize_path_segment(value: str) -> str:
@@ -285,8 +307,9 @@ def main(argv: Iterable[str] | None = None) -> int:
     output_dir: Path = args.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    channel_urls = resolve_channel_urls(args.channel_urls, args.source_file)
     saved_files = collect_transcripts(
-        args.channel_urls, output_dir=output_dir, limit=args.limit
+        channel_urls, output_dir=output_dir, limit=args.limit
     )
     LOGGER.info("Completed transcript collection. Saved %d files.", len(saved_files))
     return 0
