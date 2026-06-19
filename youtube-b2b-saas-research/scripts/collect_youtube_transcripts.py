@@ -20,7 +20,7 @@ from youtube_transcript_api import (
 from source_utils import default_sources_file, load_research_sources, select_source_urls
 
 LOGGER = logging.getLogger(__name__)
-DEFAULT_LIMIT = 5
+DEFAULT_LIMIT = 10
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_ROOT = PROJECT_ROOT / "research" / "youtube-transcripts"
 
@@ -67,7 +67,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--limit",
         type=int,
         default=DEFAULT_LIMIT,
-        help="Number of latest videos to collect per channel. Default: 5",
+        help="Number of latest videos to collect per channel. Default: 10",
     )
     parser.add_argument(
         "--log-level",
